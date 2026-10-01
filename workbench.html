@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>双 Agent 建筑建模工作台 (双视觉协同版)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      display: flex;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background: #121212;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 550px;
+      min-width: 500px;
+      background: #1a1a1a;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .config-card, .agent-card {
+      background: #242424;
+      border: 1px solid #383838;
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .config-row { display: flex; gap: 8px; align-items: center; }
+    .config-row input, .config-row select {
+      flex: 1;
+      background: #141414;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 6px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+
+    .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: bold;
+      color: #81d4fa;
+      border-bottom: 1px solid #333;
+      padding-bottom: 4px;
+    }
+    .agent-header.agent2 { color: #ffb74d; }
+
+    textarea {
+      width: 100%;
+      height: 85px;
+      background: #141414;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #eee;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+      line-height: 1.4;
+    }
+    #agent2-output { height: 110px; }
+
+    /* 图像上传与共享视觉指示 */
+    .image-upload-zone {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #181818;
+      border: 1px dashed #555;
+      border-radius: 4px;
+      padding: 6px 8px;
+    }
+    .image-upload-zone label {
+      font-size: 11px;
+      background: #2e7d32;
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .image-upload-zone input[type="file"] { display: none; }
+    #image-preview-wrapper {
+      position: relative;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    #image-preview {
+      width: 42px;
+      height: 42px;
+      object-fit: cover;
+      border-radius: 3px;
+      border: 1px solid #666;
+    }
+    #btn-remove-img {
+      background: #c62828;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+
+    .btn-group { display: flex; gap: 6px; }
+    button {
+      flex: 1;
+      padding: 7px 10px;
+      background: #0288d1;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    button:hover { background: #039be5; }
+    button.btn-detect { background: #8e24aa; flex: 0 0 100px; }
+    button.btn-detect:hover { background: #ab47bc; }
+    button.btn-warn { background: #f57c00; }
+    button.btn-warn:hover { background: #fb8c00; }
+    button.btn-success { background: #2e7d32; }
+    button.btn-success:hover { background: #388e3c; }
+    button.btn-secondary { background: #424242; }
+    button.btn-secondary:hover { background: #505050; }
+    button:disabled { background: #2c2c2c; color: #666; cursor: not-allowed; }
+
+    .token-meter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #aaa;
+    }
+    .progress-bar {
+      height: 5px;
+      background: #333;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #4caf50;
+      transition: width 0.1s linear;
+    }
+
+    .packet-card {
+      background: #181818;
+      border: 1px solid #2c2c2c;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      max-height: 160px;
+    }
+    .packet-header {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #9ccc65;
+      background: #202020;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      justify-content: space-between;
+    }
+    #packet-body {
+      padding: 8px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #a5d6a7;
+      background: #0d0d0d;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      flex: 1;
+      height: 100px;
+    }
+
+    #viewport-container {
+      flex: 1;
+      position: relative;
+      background: #080808;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    #stats-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(18,18,18,0.85);
+      border: 1px solid #444;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="config-card">
+      <div class="config-row">
+        <input id="api-url" type="text" placeholder="Base URL" value="https://api.openai.com/v1" />
+        <input id="api-key" type="password" placeholder="API Key (sk-...)" />
+      </div>
+      <div class="config-row">
+        <select id="model-select">
+          <option value="">-- 先点击右侧“检测模型” --</option>
+        </select>
+        <button id="btn-detect" class="btn-detect">🔍 检测模型</button>
+      </div>
+    </div>
+
+    <!-- Agent 1 提取器 -->
+    <div class="agent-card">
+      <div class="agent-header">
+        <span>Agent 1: 视觉图纸提取与常识脑补</span>
+        <span id="agent1-status" style="font-size: 11px; color: #888;">空闲</span>
+      </div>
+
+      <!-- 全局共享图像上传区 -->
+      <div class="image-upload-zone">
+        <label for="input-floorplan">📷 上传俯视图 / 平面图</label>
+        <input id="input-floorplan" type="file" accept="image/*" />
+        <div id="image-preview-wrapper">
+          <img id="image-preview" src="" alt="preview" />
+          <button id="btn-remove-img" type="button">✕ 清除</button>
+        </div>
+        <span id="image-hint" style="font-size: 11px; color: #888;">未选择图纸 (纯文本模式)</span>
+      </div>
+
+      <textarea id="agent1-input" placeholder="输入建筑文字补充说明（例如：根据俯视图推断层高、柱网结构并补齐屋顶）..."></textarea>
+      <div class="btn-group">
+        <button id="btn-agent1-run">调用 Agent 1 结构化解析</button>
+      </div>
+      <textarea id="agent1-output" placeholder="结构化建筑参数（可直接编辑）..."></textarea>
+      <div class="btn-group">
+        <button id="btn-transfer" class="btn-secondary">⬇ 复制并同步给 Agent 2</button>
+      </div>
+    </div>
+
+    <!-- Agent 2 代码生成器 (同时接入视觉) -->
+    <div class="agent-card">
+      <div class="agent-header agent2">
+        <span>Agent 2: Three.js 生成器 (双重视觉锚定)</span>
+        <span id="agent2-status" style="font-size: 11px; color: #888;">空闲</span>
+      </div>
+      <textarea id="agent2-input" placeholder="建筑特征规格输入..."></textarea>
+      <div class="token-meter">
+        <span>Token 消耗: <strong id="token-val">0</strong> / 20,000</span>
+        <span id="heal-tag" style="color: #66bb6a; display: none; font-weight: bold;">[自愈修复成功]</span>
+      </div>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div class="btn-group">
+        <button id="btn-agent2-run" class="btn-warn">生成场景代码 (结合图纸与参数)</button>
+        <button id="btn-agent2-stop" class="btn-secondary" disabled>紧急中断</button>
+      </div>
+      <textarea id="agent2-output" placeholder="生成的原生 Three.js 源码..."></textarea>
+      <div class="btn-group">
+        <button id="btn-render" class="btn-success">编译并渲染场景</button>
+        <button id="btn-reset" class="btn-secondary">清空场景</button>
+      </div>
+    </div>
+
+    <!-- 抓包监控 -->
+    <div class="packet-card">
+      <div class="packet-header">
+        <span>实时网络抓包 (Network Packet Inspector)</span>
+        <span id="packet-status" style="color: #aaa;">待机</span>
+      </div>
+      <div id="packet-body">等待发起网络交互...</div>
+    </div>
+  </div>
+
+  <div id="viewport-container">
+    <div id="stats-badge">三角面数: <span id="triangles-count">0</span></div>
+    <canvas id="webgl-canvas"></canvas>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. 自愈算法
+    // ==========================================
+    class CodeDefenseGuard {
+      static cleanMarkdown(raw) {
+        let clean = (raw || '').trim();
+        clean = clean.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '').trim();
+        const start = clean.search(/(function|const|let|var|class|\/\/)/);
+        return start > 0 ? clean.slice(start) : clean;
+      }
+
+      static closeOuterBrackets(code) {
+        const stack = [];
+        let inStr = null;
+        let isEsc = false;
+
+        for (let i = 0; i < code.length; i++) {
+          const char = code[i];
+          if (isEsc) { isEsc = false; continue; }
+          if (char === '\\') { isEsc = true; continue; }
+
+          if (char === '"' || char === "'" || char === '`') {
+            if (inStr === char) inStr = null;
+            else if (!inStr) inStr = char;
+            continue;
+          }
+          if (inStr) continue;
+
+          if (char === '{') stack.push('}');
+          else if (char === '(') stack.push(')');
+          else if (char === '[') stack.push(']');
+          else if (char === '}' || char === ')' || char === ']') {
+            if (stack.length && stack[stack.length - 1] === char) stack.pop();
+          }
+        }
+
+        let res = code;
+        if (inStr) res += inStr;
+        while (stack.length > 0) res += '\n' + stack.pop();
+
+        if (res.includes('root') && !res.includes('scene.add(root)')) {
+          res += '\nif (typeof root !== "undefined" && root) { scene.add(root); }';
+        }
+        return res;
+      }
+
+      static sanitizeAndHeal(rawCode) {
+        const clean = this.cleanMarkdown(rawCode);
+        if (!clean) return { code: '', healed: false };
+
+        try {
+          new Function('scene', 'THREE', 'canvas', clean);
+          return { code: clean, healed: false };
+        } catch (_) {}
+
+        const lines = clean.split('\n');
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i].trim();
+          if (line.endsWith(';') || line.endsWith('}')) {
+            const candidate = lines.slice(0, i + 1).join('\n');
+            const closed = CodeDefenseGuard.closeOuterBrackets(candidate);
+            try {
+              new Function('scene', 'THREE', 'canvas', closed);
+              return { code: closed, healed: true };
+            } catch (e) {
+              continue;
+            }
+          }
+        }
+
+        const emergency = `
+          const root = new THREE.Group();
+          const mat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.4 });
+          const box = new THREE.Mesh(new THREE.BoxGeometry(20, 2, 40), mat);
+          root.add(box);
+          scene.add(root);
+        `;
+        return { code: emergency, healed: true };
+      }
+    }
+
+    // ==========================================
+    // 2. MVU 架构 (图片作为共享图纸资源)
+    // ==========================================
+    const initialModel = {
+      api: { url: 'https://api.openai.com/v1', key: '', model: '' },
+      availableModels: [],
+      sharedImageBase64: null, // Agent 1 与 Agent 2 共享的图纸
+      agent1: { status: 'idle', input: '', output: '' },
+      agent2: { status: 'idle', input: '', output: '', tokens: 0, maxBudget: 20000, isHealed: false },
+      render: { status: 'ready', triangles: 0 },
+      abortCtrl: null
+    };
+
+    let model = { ...initialModel };
+
+    function update(state, msg) {
+      switch (msg.type) {
+        case 'SET_API_CONFIG':
+          return [{ ...state, api: { ...state.api, ...msg.payload } }, { type: 'NONE' }];
+        case 'DETECT_MODELS_START':
+          return [state, { type: 'CMD_FETCH_MODELS' }];
+        case 'DETECT_MODELS_SUCCESS':
+          return [{ ...state, availableModels: msg.payload, api: { ...state.api, model: msg.payload[0] || '' } }, { type: 'NONE' }];
+        case 'SELECT_MODEL':
+          return [{ ...state, api: { ...state.api, model: msg.payload } }, { type: 'NONE' }];
+        case 'SET_SHARED_IMAGE':
+          return [{ ...state, sharedImageBase64: msg.payload }, { type: 'NONE' }];
+        case 'CLEAR_SHARED_IMAGE':
+          return [{ ...state, sharedImageBase64: null }, { type: 'NONE' }];
+        case 'AGENT1_INPUT':
+          return [{ ...state, agent1: { ...state.agent1, input: msg.payload } }, { type: 'NONE' }];
+        case 'AGENT1_START':
+          return [{ ...state, agent1: { ...state.agent1, status: 'loading' } }, { type: 'CMD_AGENT1' }];
+        case 'AGENT1_SUCCESS':
+          return [{ ...state, agent1: { ...state.agent1, status: 'idle', output: msg.payload } }, { type: 'NONE' }];
+        case 'TRANSFER_TO_AGENT2':
+          return [{ ...state, agent2: { ...state.agent2, input: state.agent1.output } }, { type: 'NONE' }];
+        case 'AGENT2_INPUT':
+          return [{ ...state, agent2: { ...state.agent2, input: msg.payload } }, { type: 'NONE' }];
+        case 'AGENT2_CODE_EDIT':
+          return [{ ...state, agent2: { ...state.agent2, output: msg.payload } }, { type: 'NONE' }];
+        case 'AGENT2_START':
+          return [{ ...state, agent2: { ...state.agent2, status: 'generating', tokens: 0, output: '', isHealed: false }, abortCtrl: new AbortController() }, { type: 'CMD_AGENT2' }];
+        case 'AGENT2_CHUNK': {
+          const nextTokens = state.agent2.tokens + msg.tokens;
+          const nextCode = state.agent2.output + msg.text;
+          return [{ ...state, agent2: { ...state.agent2, tokens: nextTokens, output: nextCode } }, { type: 'NONE' }];
+        }
+        case 'AGENT2_DONE':
+          return [{ ...state, agent2: { ...state.agent2, status: 'idle' } }, { type: 'CMD_COMPILE_SCENE' }];
+        case 'AGENT2_STOP':
+          if (state.abortCtrl) state.abortCtrl.abort();
+          return [{ ...state, agent2: { ...state.agent2, status: 'idle' } }, { type: 'CMD_COMPILE_SCENE' }];
+        case 'RENDER_EXECUTE':
+          return [{ ...state, render: { ...state.render, status: 'compiling' } }, { type: 'CMD_COMPILE_SCENE' }];
+        case 'RENDER_SUCCESS':
+          return [{ ...state, render: { ...state.render, status: 'rendering' } }, { type: 'NONE' }];
+        case 'CLEAR_SCENE':
+          clearModelScene();
+          return [{ ...state, render: { ...state.render, status: 'ready', triangles: 0 } }, { type: 'NONE' }];
+        case 'SET_HEAL_FLAG':
+          return [{ ...state, agent2: { ...state.agent2, isHealed: msg.payload } }, { type: 'NONE' }];
+        default:
+          return [state, { type: 'NONE' }];
+      }
+    }
+
+    // ==========================================
+    // 3. 网络抓包管理器
+    // ==========================================
+    const packetBody = document.getElementById('packet-body');
+    const packetStatus = document.getElementById('packet-status');
+
+    function recordPacket(type, method, url, headers, body, status = null, duration = null) {
+      const timestamp = new Date().toLocaleTimeString();
+      let logText = `[${timestamp}] >>> ${method}${url}\n`;
+      if (status !== null) logText += `<<< Status: ${status} (耗时: ${duration}ms)\n`;
+      logText += `--------------------------------------------------------\n`;
+      packetBody.innerText = logText + packetBody.innerText;
+      packetStatus.innerText = `${method}${status || '请求中...'}`;
+    }
+
+    function appendStreamPacket(chunk) {
+      packetBody.innerText = `[SSE Chunk] ${chunk}\n` + packetBody.innerText.slice(0, 3000);
+    }
+
+    // ==========================================
+    // 4. 命令调度器 (双 Agent 视觉直达)
+    // ==========================================
+    async function handleCmd(cmd) {
+      switch (cmd.type) {
+        case 'CMD_FETCH_MODELS': {
+          if (!model.api.key) { alert('请先填写 API Key！'); return; }
+          const targetUrl = `${model.api.url.replace(/\/+$/, '')}/models`;
+          const reqHeaders = { 'Authorization': `Bearer ${model.api.key}` };
+          const startTime = performance.now();
+          recordPacket('HTTP', 'GET', targetUrl, reqHeaders, null);
+
+          try {
+            const res = await fetch(targetUrl, { headers: reqHeaders });
+            const data = await res.json();
+            recordPacket('HTTP', 'GET', targetUrl, reqHeaders, data, res.status, Math.round(performance.now() - startTime));
+            if (!res.ok) throw new Error(data.error?.message || '获取模型列表失败');
+            const models = (data.data || data).map(m => m.id || m.name).filter(Boolean).sort();
+            dispatch({ type: 'DETECT_MODELS_SUCCESS', payload: models });
+          } catch (err) { alert(`检测失败: ${err.message}`); }
+          break;
+        }
+
+        // --- Agent 1: 提取建筑几何规格 ---
+        case 'CMD_AGENT1': {
+          if (!model.api.key || !model.api.model) {
+            alert('请确认配置并选择可用模型！');
+            dispatch({ type: 'AGENT1_SUCCESS', payload: '配置未就绪' });
+            return;
+          }
+          const targetUrl = `${model.api.url.replace(/\/+$/, '')}/chat/completions`;
+          const reqHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${model.api.key}` };
+
+          const systemPrompt = `你是一个资深多模态建筑空间解构专家。
+【任务】：
+如果附带了建筑俯视图/平面图/卫星图：
+1. 严谨分析图纸：识别轮廓外形（矩形、圆形、同心环、异形组合等）、主要轴线柱网、开间进深比例、内院中庭与出入口通道位置。
+2. 三维升维推断：根据平面图推导三维体量关系、各层层高、屋面形态（平顶/坡顶/攒尖/挑檐）、柱廊形式与外立面门窗开孔模数。
+3. 若有文字补充（如指定为特定名胜或历史古建），调用建筑常识库补足缺失的竖向标高及梁架细部。
+最后输出结构化的纯参数化规格说明，包含明确的基底尺寸比例、柱距、层数分布、屋面形态及关键材质建议。`;
+
+          let userContent;
+          if (model.sharedImageBase64) {
+            userContent = [
+              { type: 'text', text: model.agent1.input.trim() || '请全面解析这张建筑平面/俯视图，提取出几何参数、柱网模数并推断完整的三维结构。' },
+              { type: 'image_url', image_url: { url: model.sharedImageBase64 } }
+            ];
+          } else {
+            userContent = model.agent1.input;
+          }
+
+          const payload = {
+            model: model.api.model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userContent }
+            ],
+            temperature: 0.2
+          };
+
+          const startTime = performance.now();
+          recordPacket('HTTP', 'POST (AGENT1-VISION)', targetUrl, reqHeaders, { ...payload, messages: [{ role: 'system', content: '...' }, { role: 'user', content: model.sharedImageBase64 ? '[Text + Base64 Image]' : model.agent1.input }] });
+
+          try {
+            const res = await fetch(targetUrl, { method: 'POST', headers: reqHeaders, body: JSON.stringify(payload) });
+            const data = await res.json();
+            recordPacket('HTTP', 'POST', targetUrl, reqHeaders, data, res.status, Math.round(performance.now() - startTime));
+            if (!res.ok) throw new Error(data.error?.message || '请求失败');
+            dispatch({ type: 'AGENT1_SUCCESS', payload: data.choices[0].message.content });
+          } catch (err) {
+            dispatch({ type: 'AGENT1_SUCCESS', payload: `失败: ${err.message}` });
+          }
+          break;
+        }
+
+        // --- Agent 2: 结合说明与原始图纸直接写代码 ---
+        case 'CMD_AGENT2': {
+          if (!model.api.key || !model.api.model) {
+            alert('请确认配置并选择可用模型！');
+            dispatch({ type: 'AGENT2_DONE' });
+            return;
+          }
+          const targetUrl = `${model.api.url.replace(/\/+$/, '')}/chat/completions`;
+          const reqHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${model.api.key}` };
+
+          const systemPrompt = `你是一个资深 Three.js 建筑程序化建模大师。
+环境已内置：scene (THREE.Scene), THREE, canvas。
+【任务】：
+你将同时参考用户的建筑特征规格描述，以及附带的建筑原始俯视图/平面图（如果有的话）。
+请将两者对照融合，编写原生高质量建模脚本：
+1. 以图像中真实的平面长宽比例、拐角拓扑和轮廓排布为坐标基准（严格避免凭空走样），结合文字参数补充的三维高度和细部进行立体拉伸。
+2. 充分发挥你的能力，用参数化 for 循环构建密集柱网、斗拱支撑、梁架体系、格栅门窗与屋面。
+3. 纯 JS 代码，严禁出现任何 Markdown 语法符号（严禁出现 \`\`\` 标记），严禁出现任何解释文字。
+4. 所有生成的构件挂载在根节点 const root = new THREE.Group() 上，并在代码最后执行 scene.add(root);`;
+
+          // Agent 2 同样注入图像（实现真正的“一边看图一边对齐写代码”）
+          let userContent;
+          if (model.sharedImageBase64) {
+            userContent = [
+              { type: 'text', text: `这是建筑规格参数：\n${model.agent2.input}\n\n请对照附带的俯视图图纸形状与长宽比，编写原生 Three.js 建模代码：` },
+              { type: 'image_url', image_url: { url: model.sharedImageBase64 } }
+            ];
+          } else {
+            userContent = model.agent2.input;
+          }
+
+          const payload = {
+            model: model.api.model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userContent }
+            ],
+            stream: true,
+            max_tokens: 20000,
+            max_completion_tokens: 20000,
+            temperature: 0.3
+          };
+
+          recordPacket('SSE', 'POST (AGENT2-VISION-STREAM)', targetUrl, reqHeaders, payload);
+
+          try {
+            const res = await fetch(targetUrl, {
+              method: 'POST',
+              headers: reqHeaders,
+              body: JSON.stringify(payload),
+              signal: model.abortCtrl.signal
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedTokens = 0;
+            let streamFinished = false;
+
+            while (!streamFinished) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n').filter(l => l.trim().startsWith('data: '));
+
+              for (const line of lines) {
+                const dataStr = line.replace('data: ', '').trim();
+                if (dataStr === '[DONE]') {
+                  streamFinished = true;
+                  break;
+                }
+
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const choice = parsed.choices[0];
+                  const content = choice?.delta?.content || '';
+
+                  if (choice?.finish_reason === 'stop') streamFinished = true;
+
+                  if (content) {
+                    const estTokens = Math.ceil(content.length / 3.5);
+                    accumulatedTokens += estTokens;
+                    dispatch({ type: 'AGENT2_CHUNK', text: content, tokens: estTokens });
+                    appendStreamPacket(content);
+
+                    if (accumulatedTokens >= model.agent2.maxBudget) {
+                      model.abortCtrl.abort();
+                      streamFinished = true;
+                      break;
+                    }
+                  }
+                } catch (e) {}
+              }
+            }
+            dispatch({ type: 'AGENT2_DONE' });
+            packetStatus.innerText = '生成完成 (已自动上屏渲染)';
+          } catch (err) {
+            if (err.name !== 'AbortError') recordPacket('ERROR', 'STREAM_FAIL', targetUrl, {}, err.message);
+            dispatch({ type: 'AGENT2_DONE' });
+          }
+          break;
+        }
+
+        case 'CMD_COMPILE_SCENE': {
+          try {
+            if (!model.agent2.output || !model.agent2.output.trim()) return;
+            const { code, healed } = CodeDefenseGuard.sanitizeAndHeal(model.agent2.output);
+            dispatch({ type: 'SET_HEAL_FLAG', payload: healed });
+            compileAndMountModel(code);
+            dispatch({ type: 'RENDER_SUCCESS' });
+          } catch (err) {
+            console.error(err);
+            alert(`编译执行失败: ${err.message}`);
+          }
+          break;
+        }
+      }
+    }
+
+    function dispatch(msg) {
+      const [nextModel, cmd] = update(model, msg);
+      model = nextModel;
+      syncView(model);
+      handleCmd(cmd);
+    }
+
+    // ==========================================
+    // 5. 单例常驻 WebGL 运行时
+    // ==========================================
+    const canvas = document.getElementById('webgl-canvas');
+    let renderer = null;
+    let scene = null;
+    let camera = null;
+    let controls = null;
+    let defaultElements = new Set();
+
+    function initWebGL() {
+      if (renderer) return;
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x111111);
+
+      camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+      camera.position.set(35, 25, 35);
+
+      const ControlsCtor = THREE.OrbitControls || window.OrbitControls;
+      if (ControlsCtor) {
+        controls = new ControlsCtor(camera, canvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+      }
+
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+      hemiLight.name = '__BASE_HEMI_LIGHT__';
+      scene.add(hemiLight);
+      defaultElements.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(30, 50, 30);
+      dirLight.castShadow = true;
+      dirLight.name = '__BASE_DIR_LIGHT__';
+      scene.add(dirLight);
+      defaultElements.add(dirLight);
+
+      const grid = new THREE.GridHelper(80, 80, 0x333333, 0x222222);
+      grid.name = '__BASE_GRID__';
+      scene.add(grid);
+      defaultElements.add(grid);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (controls) controls.update();
+        renderer.render(scene, camera);
+        document.getElementById('triangles-count').innerText = renderer.info.render.triangles.toLocaleString();
+      }
+      animate();
+
+      const resizeObserver = new ResizeObserver(() => {
+        if (!canvas.clientWidth || !canvas.clientHeight) return;
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+      });
+      resizeObserver.observe(document.getElementById('viewport-container'));
+    }
+
+    function safeDisposeObject(obj) {
+      if (!obj) return;
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose && m.dispose());
+        else if (obj.material.dispose) obj.material.dispose();
+      }
+    }
+
+    function clearModelScene() {
+      if (!scene) return;
+      const toRemove = [];
+      scene.children.forEach(child => {
+        if (!defaultElements.has(child)) toRemove.push(child);
+      });
+
+      toRemove.forEach(obj => {
+        scene.remove(obj);
+        obj.traverse(safeDisposeObject);
+      });
+      document.getElementById('triangles-count').innerText = '0';
+    }
+
+    function compileAndMountModel(code) {
+      initWebGL();
+      clearModelScene();
+
+      const proxyScene = new Proxy(scene, {
+        get(target, prop) { return target[prop]; }
+      });
+
+      const run = new Function('scene', 'THREE', 'canvas', code);
+      run(proxyScene, THREE, canvas);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => initWebGL());
+
+    // ==========================================
+    // 6. View 同步与事件挂载
+    // ==========================================
+    function syncView(s) {
+      const select = document.getElementById('model-select');
+      if (select.children.length - 1 !== s.availableModels.length && s.availableModels.length > 0) {
+        select.innerHTML = '';
+        s.availableModels.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.innerText = m;
+          select.appendChild(opt);
+        });
+        select.value = s.api.model;
+      }
+
+      document.getElementById('agent1-status').innerText = s.agent1.status === 'loading' ? '分析中...' : '空闲';
+      document.getElementById('agent1-output').value = s.agent1.output;
+      document.getElementById('btn-agent1-run').disabled = s.agent1.status === 'loading';
+
+      // 共享图像预览同步
+      const previewWrapper = document.getElementById('image-preview-wrapper');
+      const previewImg = document.getElementById('image-preview');
+      const hint = document.getElementById('image-hint');
+      if (s.sharedImageBase64) {
+        previewImg.src = s.sharedImageBase64;
+        previewWrapper.style.display = 'flex';
+        hint.innerText = '图纸已加载 (双 Agent 视觉直通中)';
+      } else {
+        previewImg.src = '';
+        previewWrapper.style.display = 'none';
+        hint.innerText = '未选择图纸 (纯文本模式)';
+        document.getElementById('input-floorplan').value = '';
+      }
+
+      document.getElementById('agent2-status').innerText = s.agent2.status === 'generating' ? '生成中...' : '空闲';
+      document.getElementById('agent2-input').value = s.agent2.input;
+      document.getElementById('agent2-output').value = s.agent2.output;
+      document.getElementById('btn-agent2-run').disabled = s.agent2.status === 'generating';
+      document.getElementById('btn-agent2-stop').disabled = s.agent2.status !== 'generating';
+
+      document.getElementById('token-val').innerText = s.agent2.tokens.toLocaleString();
+      const pct = Math.min(100, (s.agent2.tokens / s.agent2.maxBudget) * 100);
+      const fill = document.getElementById('progress-fill');
+      fill.style.width = `${pct}%`;
+      fill.style.background = pct > 85 ? '#f44336' : (pct > 60 ? '#ff9800' : '#4caf50');
+      document.getElementById('heal-tag').style.display = s.agent2.isHealed ? 'inline' : 'none';
+    }
+
+    document.getElementById('api-url').addEventListener('change', (e) => dispatch({ type: 'SET_API_CONFIG', payload: { url: e.target.value } }));
+    document.getElementById('api-key').addEventListener('change', (e) => dispatch({ type: 'SET_API_CONFIG', payload: { key: e.target.value } }));
+    document.getElementById('model-select').addEventListener('change', (e) => dispatch({ type: 'SELECT_MODEL', payload: e.target.value }));
+    document.getElementById('btn-detect').addEventListener('click', () => dispatch({ type: 'DETECT_MODELS_START' }));
+
+    // 图片上传事件 (存入共享状态)
+    document.getElementById('input-floorplan').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => dispatch({ type: 'SET_SHARED_IMAGE', payload: evt.target.result });
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('btn-remove-img').addEventListener('click', () => dispatch({ type: 'CLEAR_SHARED_IMAGE' }));
+
+    document.getElementById('agent1-input').addEventListener('input', (e) => dispatch({ type: 'AGENT1_INPUT', payload: e.target.value }));
+    document.getElementById('btn-agent1-run').addEventListener('click', () => dispatch({ type: 'AGENT1_START' }));
+    document.getElementById('btn-transfer').addEventListener('click', () => dispatch({ type: 'TRANSFER_TO_AGENT2' }));
+
+    document.getElementById('agent2-input').addEventListener('input', (e) => dispatch({ type: 'AGENT2_INPUT', payload: e.target.value }));
+    document.getElementById('agent2-output').addEventListener('input', (e) => dispatch({ type: 'AGENT2_CODE_EDIT', payload: e.target.value }));
+    document.getElementById('btn-agent2-run').addEventListener('click', () => dispatch({ type: 'AGENT2_START' }));
+    document.getElementById('btn-agent2-stop').addEventListener('click', () => dispatch({ type: 'AGENT2_STOP' }));
+
+    document.getElementById('btn-render').addEventListener('click', () => dispatch({ type: 'RENDER_EXECUTE' }));
+    document.getElementById('btn-reset').addEventListener('click', () => dispatch({ type: 'CLEAR_SCENE' }));
+  </script>
+</body>
+</html>

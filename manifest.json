@@ -1,0 +1,9 @@
+{
+  "display_name": "酒馆建筑师 (Tavern Architect)",
+  "loading_order": 999,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "author": "User",
+  "version": "1.0.0"
+}
