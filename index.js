@@ -20,7 +20,7 @@ jQuery(() => {
 
   const frame = document.createElement('iframe');
   frame.id = 'st-architect-frame';
-  frame.src = '/scripts/extensions/third-party/Tavern-Architect/workbench.html';
+  frame.src = new URL('workbench.html', import.meta.url).href;
   frame.style.cssText = 'width:100%;height:calc(100% - 36px);border:none;';
 
   container.appendChild(bar);
