@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>双 Agent 建筑建模工作台 (双视觉协同版)</title>
+  <title id="title-text">Dual-Agent Architectural Workbench</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -44,6 +44,14 @@
       padding: 6px 8px;
       font-size: 11px;
       border-radius: 4px;
+    }
+
+    .lang-select {
+      flex: 0 0 95px !important;
+      background: #1e1e1e !important;
+      border-color: #555 !important;
+      color: #81d4fa !important;
+      cursor: pointer;
     }
 
     .agent-header {
@@ -130,7 +138,7 @@
       white-space: nowrap;
     }
     button:hover { background: #039be5; }
-    button.btn-detect { background: #8e24aa; flex: 0 0 100px; }
+    button.btn-detect { background: #8e24aa; flex: 0 0 110px; }
     button.btn-detect:hover { background: #ab47bc; }
     button.btn-warn { background: #f57c00; }
     button.btn-warn:hover { background: #fb8c00; }
@@ -219,84 +227,202 @@
       <div class="config-row">
         <input id="api-url" type="text" placeholder="Base URL" value="https://api.openai.com/v1" />
         <input id="api-key" type="password" placeholder="API Key (sk-...)" />
+        <select id="lang-select" class="lang-select">
+          <option value="en" selected>English</option>
+          <option value="zh">中文</option>
+        </select>
       </div>
       <div class="config-row">
         <select id="model-select">
-          <option value="">-- 先点击右侧“检测模型” --</option>
+          <option value="" data-i18n="model_select_placeholder">-- Click "Detect Models" First --</option>
         </select>
-        <button id="btn-detect" class="btn-detect">🔍 检测模型</button>
+        <button id="btn-detect" class="btn-detect" data-i18n="btn_detect">🔍 Detect Models</button>
       </div>
     </div>
 
     <!-- Agent 1 提取器 -->
     <div class="agent-card">
       <div class="agent-header">
-        <span>Agent 1: 视觉图纸提取与常识脑补</span>
-        <span id="agent1-status" style="font-size: 11px; color: #888;">空闲</span>
+        <span data-i18n="agent1_title">Agent 1: Vision Blueprint Extraction & Spatial Reasoning</span>
+        <span id="agent1-status" style="font-size: 11px; color: #888;" data-i18n="status_idle">Idle</span>
       </div>
 
       <!-- 全局共享图像上传区 -->
       <div class="image-upload-zone">
-        <label for="input-floorplan">📷 上传俯视图 / 平面图</label>
+        <label for="input-floorplan" data-i18n="upload_btn">📷 Upload Blueprint / Floorplan</label>
         <input id="input-floorplan" type="file" accept="image/*" />
         <div id="image-preview-wrapper">
           <img id="image-preview" src="" alt="preview" />
-          <button id="btn-remove-img" type="button">✕ 清除</button>
+          <button id="btn-remove-img" type="button" data-i18n="remove_img">✕ Clear</button>
         </div>
-        <span id="image-hint" style="font-size: 11px; color: #888;">未选择图纸 (纯文本模式)</span>
+        <span id="image-hint" style="font-size: 11px; color: #888;" data-i18n="no_image_hint">No blueprint loaded (Pure text mode)</span>
       </div>
 
-      <textarea id="agent1-input" placeholder="输入建筑文字补充说明（例如：根据俯视图推断层高、柱网结构并补齐屋顶）..."></textarea>
+      <textarea id="agent1-input" data-i18n-placeholder="agent1_input_placeholder" placeholder="Enter architectural notes (e.g., infer floor height, column grid, and roof geometry from floorplan)..."></textarea>
       <div class="btn-group">
-        <button id="btn-agent1-run">调用 Agent 1 结构化解析</button>
+        <button id="btn-agent1-run" data-i18n="btn_agent1_run">Run Agent 1 Structural Parsing</button>
       </div>
-      <textarea id="agent1-output" placeholder="结构化建筑参数（可直接编辑）..."></textarea>
+      <textarea id="agent1-output" data-i18n-placeholder="agent1_output_placeholder" placeholder="Structured architectural specifications (Editable)..."></textarea>
       <div class="btn-group">
-        <button id="btn-transfer" class="btn-secondary">⬇ 复制并同步给 Agent 2</button>
+        <button id="btn-transfer" class="btn-secondary" data-i18n="btn_transfer">⬇ Copy & Sync to Agent 2</button>
       </div>
     </div>
 
     <!-- Agent 2 代码生成器 (同时接入视觉) -->
     <div class="agent-card">
       <div class="agent-header agent2">
-        <span>Agent 2: Three.js 生成器 (双重视觉锚定)</span>
-        <span id="agent2-status" style="font-size: 11px; color: #888;">空闲</span>
+        <span data-i18n="agent2_title">Agent 2: Three.js Generator (Dual Vision Grounded)</span>
+        <span id="agent2-status" style="font-size: 11px; color: #888;" data-i18n="status_idle">Idle</span>
       </div>
-      <textarea id="agent2-input" placeholder="建筑特征规格输入..."></textarea>
+      <textarea id="agent2-input" data-i18n-placeholder="agent2_input_placeholder" placeholder="Architectural specifications input..."></textarea>
       <div class="token-meter">
-        <span>Token 消耗: <strong id="token-val">0</strong> / 20,000</span>
-        <span id="heal-tag" style="color: #66bb6a; display: none; font-weight: bold;">[自愈修复成功]</span>
+        <span><span data-i18n="tokens_label">Token Usage:</span> <strong id="token-val">0</strong> / 20,000</span>
+        <span id="heal-tag" style="color: #66bb6a; display: none; font-weight: bold;" data-i18n="healed_tag">[Self-Healed Successfully]</span>
       </div>
       <div class="progress-bar">
         <div id="progress-fill" class="progress-fill"></div>
       </div>
       <div class="btn-group">
-        <button id="btn-agent2-run" class="btn-warn">生成场景代码 (结合图纸与参数)</button>
-        <button id="btn-agent2-stop" class="btn-secondary" disabled>紧急中断</button>
+        <button id="btn-agent2-run" class="btn-warn" data-i18n="btn_agent2_run">Generate Scene Code (Vision + Specs)</button>
+        <button id="btn-agent2-stop" class="btn-secondary" disabled data-i18n="btn_agent2_stop">Abort</button>
       </div>
-      <textarea id="agent2-output" placeholder="生成的原生 Three.js 源码..."></textarea>
+      <textarea id="agent2-output" data-i18n-placeholder="agent2_output_placeholder" placeholder="Generated native Three.js code..."></textarea>
       <div class="btn-group">
-        <button id="btn-render" class="btn-success">编译并渲染场景</button>
-        <button id="btn-reset" class="btn-secondary">清空场景</button>
+        <button id="btn-render" class="btn-success" data-i18n="btn_render">Compile & Render Scene</button>
+        <button id="btn-reset" class="btn-secondary" data-i18n="btn_reset">Clear Scene</button>
       </div>
     </div>
 
     <!-- 抓包监控 -->
     <div class="packet-card">
       <div class="packet-header">
-        <span>实时网络抓包 (Network Packet Inspector)</span>
-        <span id="packet-status" style="color: #aaa;">待机</span>
+        <span data-i18n="packet_title">Network Packet Inspector (Live)</span>
+        <span id="packet-status" style="color: #aaa;" data-i18n="packet_standby">Standby</span>
       </div>
-      <div id="packet-body">等待发起网络交互...</div>
+      <div id="packet-body" data-i18n="packet_body_init">Waiting for network activity...</div>
     </div>
   </div>
 
   <div id="viewport-container">
-    <div id="stats-badge">三角面数: <span id="triangles-count">0</span></div>
+    <div id="stats-badge"><span data-i18n="triangles_label">Triangles:</span> <span id="triangles-count">0</span></div>
     <canvas id="webgl-canvas"></canvas>
   </div>
 
   <script>
+    // ==========================================
+    // 0. 语言包与切换逻辑 (默认英文)
+    // ==========================================
+    const i18n = {
+      en: {
+        app_title: "Dual-Agent Architectural Workbench",
+        btn_detect: "🔍 Detect Models",
+        model_select_placeholder: '-- Click "Detect Models" First --',
+        agent1_title: "Agent 1: Vision Blueprint Extraction & Spatial Reasoning",
+        status_idle: "Idle",
+        status_loading: "Analyzing...",
+        status_generating: "Generating...",
+        upload_btn: "📷 Upload Blueprint / Floorplan",
+        remove_img: "✕ Clear",
+        no_image_hint: "No blueprint loaded (Pure text mode)",
+        image_loaded_hint: "Blueprint loaded (Dual Agent vision active)",
+        agent1_input_placeholder: "Enter architectural notes (e.g., infer floor height, column grid, and roof geometry from floorplan)...",
+        btn_agent1_run: "Run Agent 1 Structural Parsing",
+        agent1_output_placeholder: "Structured architectural specifications (Editable)...",
+        btn_transfer: "⬇ Copy & Sync to Agent 2",
+        agent2_title: "Agent 2: Three.js Generator (Dual Vision Grounded)",
+        agent2_input_placeholder: "Architectural specifications input...",
+        tokens_label: "Token Usage:",
+        healed_tag: "[Self-Healed Successfully]",
+        btn_agent2_run: "Generate Scene Code (Vision + Specs)",
+        btn_agent2_stop: "Abort",
+        agent2_output_placeholder: "Generated native Three.js code...",
+        btn_render: "Compile & Render Scene",
+        btn_reset: "Clear Scene",
+        packet_title: "Network Packet Inspector (Live)",
+        packet_standby: "Standby",
+        packet_requesting: "Requesting...",
+        packet_body_init: "Waiting for network activity...",
+        packet_gen_done: "Generation finished (Scene rendered)",
+        triangles_label: "Triangles:",
+        alert_no_key: "Please enter your API Key first!",
+        alert_fetch_models_fail: "Failed to fetch model list",
+        alert_detect_fail: "Model detection failed: ",
+        alert_confirm_config: "Please verify configuration and select an available model!",
+        config_not_ready: "Configuration not ready",
+        request_fail: "Request failed: ",
+        compile_fail: "Compilation & Execution failed: "
+      },
+      zh: {
+        app_title: "双 Agent 建筑建模工作台 (双视觉协同版)",
+        btn_detect: "🔍 检测模型",
+        model_select_placeholder: "-- 先点击右侧“检测模型” --",
+        agent1_title: "Agent 1: 视觉图纸提取与常识脑补",
+        status_idle: "空闲",
+        status_loading: "分析中...",
+        status_generating: "生成中...",
+        upload_btn: "📷 上传俯视图 / 平面图",
+        remove_img: "✕ 清除",
+        no_image_hint: "未选择图纸 (纯文本模式)",
+        image_loaded_hint: "图纸已加载 (双 Agent 视觉直通中)",
+        agent1_input_placeholder: "输入建筑文字补充说明（例如：根据俯视图推断层高、柱网结构并补齐屋顶）...",
+        btn_agent1_run: "调用 Agent 1 结构化解析",
+        agent1_output_placeholder: "结构化建筑参数（可直接编辑）...",
+        btn_transfer: "⬇ 复制并同步给 Agent 2",
+        agent2_title: "Agent 2: Three.js 生成器 (双重视觉锚定)",
+        agent2_input_placeholder: "建筑特征规格输入...",
+        tokens_label: "Token 消耗:",
+        healed_tag: "[自愈修复成功]",
+        btn_agent2_run: "生成场景代码 (结合图纸与参数)",
+        btn_agent2_stop: "紧急中断",
+        agent2_output_placeholder: "生成的原生 Three.js 源码...",
+        btn_render: "编译并渲染场景",
+        btn_reset: "清空场景",
+        packet_title: "实时网络抓包 (Network Packet Inspector)",
+        packet_standby: "待机",
+        packet_requesting: "请求中...",
+        packet_body_init: "等待发起网络交互...",
+        packet_gen_done: "生成完成 (已自动上屏渲染)",
+        triangles_label: "三角面数:",
+        alert_no_key: "请先填写 API Key！",
+        alert_fetch_models_fail: "获取模型列表失败",
+        alert_detect_fail: "检测失败: ",
+        alert_confirm_config: "请确认配置并选择可用模型！",
+        config_not_ready: "配置未就绪",
+        request_fail: "请求失败: ",
+        compile_fail: "编译执行失败: "
+      }
+    };
+
+    let currentLang = localStorage.getItem('app_lang') || 'en';
+
+    function t(key) {
+      return (i18n[currentLang] && i18n[currentLang][key]) || (i18n['en'][key] || key);
+    }
+
+    function applyLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('app_lang', lang);
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang] && i18n[lang][key]) el.textContent = i18n[lang][key];
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (i18n[lang] && i18n[lang][key]) el.setAttribute('placeholder', i18n[lang][key]);
+      });
+
+      const titleEl = document.getElementById('title-text');
+      if (titleEl && i18n[lang].app_title) document.title = i18n[lang].app_title;
+
+      const langSelect = document.getElementById('lang-select');
+      if (langSelect && langSelect.value !== lang) langSelect.value = lang;
+
+      syncView(model);
+    }
+
     // ==========================================
     // 1. 自愈算法
     // ==========================================
@@ -453,11 +579,11 @@
 
     function recordPacket(type, method, url, headers, body, status = null, duration = null) {
       const timestamp = new Date().toLocaleTimeString();
-      let logText = `[${timestamp}] >>> ${method}${url}\n`;
-      if (status !== null) logText += `<<< Status: ${status} (耗时: ${duration}ms)\n`;
+      let logText = `[${timestamp}] >>> ${method} ${url}\n`;
+      if (status !== null) logText += `<<< Status: ${status} (${duration}ms)\n`;
       logText += `--------------------------------------------------------\n`;
       packetBody.innerText = logText + packetBody.innerText;
-      packetStatus.innerText = `${method}${status || '请求中...'}`;
+      packetStatus.innerText = `${method} ${status || t('packet_requesting')}`;
     }
 
     function appendStreamPacket(chunk) {
@@ -465,12 +591,12 @@
     }
 
     // ==========================================
-    // 4. 命令调度器 (双 Agent 视觉直达)
+    // 4. 命令调度器 (双 Agent 视觉直达 + 动态语言提示词)
     // ==========================================
     async function handleCmd(cmd) {
       switch (cmd.type) {
         case 'CMD_FETCH_MODELS': {
-          if (!model.api.key) { alert('请先填写 API Key！'); return; }
+          if (!model.api.key) { alert(t('alert_no_key')); return; }
           const targetUrl = `${model.api.url.replace(/\/+$/, '')}/models`;
           const reqHeaders = { 'Authorization': `Bearer ${model.api.key}` };
           const startTime = performance.now();
@@ -480,35 +606,47 @@
             const res = await fetch(targetUrl, { headers: reqHeaders });
             const data = await res.json();
             recordPacket('HTTP', 'GET', targetUrl, reqHeaders, data, res.status, Math.round(performance.now() - startTime));
-            if (!res.ok) throw new Error(data.error?.message || '获取模型列表失败');
+            if (!res.ok) throw new Error(data.error?.message || t('alert_fetch_models_fail'));
             const models = (data.data || data).map(m => m.id || m.name).filter(Boolean).sort();
             dispatch({ type: 'DETECT_MODELS_SUCCESS', payload: models });
-          } catch (err) { alert(`检测失败: ${err.message}`); }
+          } catch (err) { alert(`${t('alert_detect_fail')}${err.message}`); }
           break;
         }
 
         // --- Agent 1: 提取建筑几何规格 ---
         case 'CMD_AGENT1': {
           if (!model.api.key || !model.api.model) {
-            alert('请确认配置并选择可用模型！');
-            dispatch({ type: 'AGENT1_SUCCESS', payload: '配置未就绪' });
+            alert(t('alert_confirm_config'));
+            dispatch({ type: 'AGENT1_SUCCESS', payload: t('config_not_ready') });
             return;
           }
           const targetUrl = `${model.api.url.replace(/\/+$/, '')}/chat/completions`;
           const reqHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${model.api.key}` };
 
-          const systemPrompt = `你是一个资深多模态建筑空间解构专家。
+          const systemPrompt = currentLang === 'zh'
+            ? `你是一个资深多模态建筑空间解构专家。
 【任务】：
 如果附带了建筑俯视图/平面图/卫星图：
 1. 严谨分析图纸：识别轮廓外形（矩形、圆形、同心环、异形组合等）、主要轴线柱网、开间进深比例、内院中庭与出入口通道位置。
 2. 三维升维推断：根据平面图推导三维体量关系、各层层高、屋面形态（平顶/坡顶/攒尖/挑檐）、柱廊形式与外立面门窗开孔模数。
 3. 若有文字补充（如指定为特定名胜或历史古建），调用建筑常识库补足缺失的竖向标高及梁架细部。
-最后输出结构化的纯参数化规格说明，包含明确的基底尺寸比例、柱距、层数分布、屋面形态及关键材质建议。`;
+最后输出结构化的纯参数化规格说明，包含明确的基底尺寸比例、柱距、层数分布、屋面形态及关键材质建议。`
+            : `You are an expert multimodal architectural spatial analyst.
+[Task]:
+If an architectural blueprint, floorplan, or satellite view is provided:
+1. Rigorously analyze the image: identify layout contours (rectangular, circular, concentric, complex composite, etc.), structural column grids, aspect ratios, courtyards, and circulation pathways.
+2. 3D spatial inference: extrapolate 3D volumes, floor heights, roof geometries (flat, sloped, hip-and-gable, eaves), colonnades, and facade fenestration modules based on the 2D layout.
+3. If supplementary text is given, supplement missing vertical elevations and structural timber/frame details using architectural domain knowledge.
+Finally, output structured parametric specifications in English, including explicit footprint dimensions, column spacing, floor distributions, roof morphology, and material suggestions.`;
 
           let userContent;
           if (model.sharedImageBase64) {
+            const defaultPrompt = currentLang === 'zh'
+              ? '请全面解析这张建筑平面/俯视图，提取出几何参数、柱网模数并推断完整的三维结构。'
+              : 'Please analyze this floorplan/blueprint thoroughly, extract geometric parameters, column grid modularity, and infer the complete 3D structure.';
+
             userContent = [
-              { type: 'text', text: model.agent1.input.trim() || '请全面解析这张建筑平面/俯视图，提取出几何参数、柱网模数并推断完整的三维结构。' },
+              { type: 'text', text: model.agent1.input.trim() || defaultPrompt },
               { type: 'image_url', image_url: { url: model.sharedImageBase64 } }
             ];
           } else {
@@ -531,10 +669,10 @@
             const res = await fetch(targetUrl, { method: 'POST', headers: reqHeaders, body: JSON.stringify(payload) });
             const data = await res.json();
             recordPacket('HTTP', 'POST', targetUrl, reqHeaders, data, res.status, Math.round(performance.now() - startTime));
-            if (!res.ok) throw new Error(data.error?.message || '请求失败');
+            if (!res.ok) throw new Error(data.error?.message || t('request_fail'));
             dispatch({ type: 'AGENT1_SUCCESS', payload: data.choices[0].message.content });
           } catch (err) {
-            dispatch({ type: 'AGENT1_SUCCESS', payload: `失败: ${err.message}` });
+            dispatch({ type: 'AGENT1_SUCCESS', payload: `${t('request_fail')}${err.message}` });
           }
           break;
         }
@@ -542,14 +680,15 @@
         // --- Agent 2: 结合说明与原始图纸直接写代码 ---
         case 'CMD_AGENT2': {
           if (!model.api.key || !model.api.model) {
-            alert('请确认配置并选择可用模型！');
+            alert(t('alert_confirm_config'));
             dispatch({ type: 'AGENT2_DONE' });
             return;
           }
           const targetUrl = `${model.api.url.replace(/\/+$/, '')}/chat/completions`;
           const reqHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${model.api.key}` };
 
-          const systemPrompt = `你是一个资深 Three.js 建筑程序化建模大师。
+          const systemPrompt = currentLang === 'zh'
+            ? `你是一个资深 Three.js 建筑程序化建模大师。
 环境已内置：scene (THREE.Scene), THREE, canvas。
 【任务】：
 你将同时参考用户的建筑特征规格描述，以及附带的建筑原始俯视图/平面图（如果有的话）。
@@ -557,13 +696,25 @@
 1. 以图像中真实的平面长宽比例、拐角拓扑和轮廓排布为坐标基准（严格避免凭空走样），结合文字参数补充的三维高度和细部进行立体拉伸。
 2. 充分发挥你的能力，用参数化 for 循环构建密集柱网、斗拱支撑、梁架体系、格栅门窗与屋面。
 3. 纯 JS 代码，严禁出现任何 Markdown 语法符号（严禁出现 \`\`\` 标记），严禁出现任何解释文字。
-4. 所有生成的构件挂载在根节点 const root = new THREE.Group() 上，并在代码最后执行 scene.add(root);`;
+4. 所有生成的构件挂载在根节点 const root = new THREE.Group() 上，并在代码最后执行 scene.add(root);`
+            : `You are a master Three.js procedural architecture developer.
+Environment provided: scene (THREE.Scene), THREE, canvas.
+[Task]:
+Reference both the user's architectural specifications and the attached original floorplan/blueprint (if provided).
+Synthesize both inputs to generate high-quality native Three.js modeling code:
+1. Use real aspect ratios, corner topologies, and contour layouts from the image as spatial coordinates (strictly avoid distortion), extruded vertically with the provided 3D elevations and details.
+2. Procedurally construct dense column grids, structural beams, facade louvers/windows, and roofs using efficient parametric loops.
+3. Pure JS code ONLY. Strictly NO markdown backticks (\`\`\`), NO conversational filler or markdown explanations.
+4. Mount all components under a root group: const root = new THREE.Group(); and end your code with scene.add(root);`;
 
-          // Agent 2 同样注入图像（实现真正的“一边看图一边对齐写代码”）
           let userContent;
           if (model.sharedImageBase64) {
+            const promptPrefix = currentLang === 'zh'
+              ? `这是建筑规格参数：\n${model.agent2.input}\n\n请对照附带的俯视图图纸形状与长宽比，编写原生 Three.js 建模代码：`
+              : `Architectural specifications:\n${model.agent2.input}\n\nCross-reference the attached floorplan geometry and aspect ratios, and generate native Three.js procedural code:`;
+
             userContent = [
-              { type: 'text', text: `这是建筑规格参数：\n${model.agent2.input}\n\n请对照附带的俯视图图纸形状与长宽比，编写原生 Three.js 建模代码：` },
+              { type: 'text', text: promptPrefix },
               { type: 'image_url', image_url: { url: model.sharedImageBase64 } }
             ];
           } else {
@@ -636,7 +787,7 @@
               }
             }
             dispatch({ type: 'AGENT2_DONE' });
-            packetStatus.innerText = '生成完成 (已自动上屏渲染)';
+            packetStatus.innerText = t('packet_gen_done');
           } catch (err) {
             if (err.name !== 'AbortError') recordPacket('ERROR', 'STREAM_FAIL', targetUrl, {}, err.message);
             dispatch({ type: 'AGENT2_DONE' });
@@ -653,7 +804,7 @@
             dispatch({ type: 'RENDER_SUCCESS' });
           } catch (err) {
             console.error(err);
-            alert(`编译执行失败: ${err.message}`);
+            alert(`${t('compile_fail')}${err.message}`);
           }
           break;
         }
@@ -737,7 +888,7 @@
       if (!obj) return;
       if (obj.geometry) obj.geometry.dispose();
       if (obj.material) {
-        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose && m.dispose());
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m && m.dispose && m.dispose());
         else if (obj.material.dispose) obj.material.dispose();
       }
     }
@@ -768,14 +919,23 @@
       run(proxyScene, THREE, canvas);
     }
 
-    window.addEventListener('DOMContentLoaded', () => initWebGL());
+    function boot() {
+      initWebGL();
+      applyLanguage(currentLang);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
 
     // ==========================================
     // 6. View 同步与事件挂载
     // ==========================================
     function syncView(s) {
       const select = document.getElementById('model-select');
-      if (select.children.length - 1 !== s.availableModels.length && s.availableModels.length > 0) {
+      if (select && select.children.length - 1 !== s.availableModels.length && s.availableModels.length > 0) {
         select.innerHTML = '';
         s.availableModels.forEach(m => {
           const opt = document.createElement('option');
@@ -786,26 +946,28 @@
         select.value = s.api.model;
       }
 
-      document.getElementById('agent1-status').innerText = s.agent1.status === 'loading' ? '分析中...' : '空闲';
+      document.getElementById('agent1-status').innerText = s.agent1.status === 'loading' ? t('status_loading') : t('status_idle');
       document.getElementById('agent1-output').value = s.agent1.output;
       document.getElementById('btn-agent1-run').disabled = s.agent1.status === 'loading';
 
-      // 共享图像预览同步
+      // 共享图像预览同步（支持动态语言切换更新）
       const previewWrapper = document.getElementById('image-preview-wrapper');
       const previewImg = document.getElementById('image-preview');
       const hint = document.getElementById('image-hint');
       if (s.sharedImageBase64) {
         previewImg.src = s.sharedImageBase64;
         previewWrapper.style.display = 'flex';
-        hint.innerText = '图纸已加载 (双 Agent 视觉直通中)';
+        hint.setAttribute('data-i18n', 'image_loaded_hint');
+        hint.innerText = t('image_loaded_hint');
       } else {
         previewImg.src = '';
         previewWrapper.style.display = 'none';
-        hint.innerText = '未选择图纸 (纯文本模式)';
+        hint.setAttribute('data-i18n', 'no_image_hint');
+        hint.innerText = t('no_image_hint');
         document.getElementById('input-floorplan').value = '';
       }
 
-      document.getElementById('agent2-status').innerText = s.agent2.status === 'generating' ? '生成中...' : '空闲';
+      document.getElementById('agent2-status').innerText = s.agent2.status === 'generating' ? t('status_generating') : t('status_idle');
       document.getElementById('agent2-input').value = s.agent2.input;
       document.getElementById('agent2-output').value = s.agent2.output;
       document.getElementById('btn-agent2-run').disabled = s.agent2.status === 'generating';
@@ -818,6 +980,9 @@
       fill.style.background = pct > 85 ? '#f44336' : (pct > 60 ? '#ff9800' : '#4caf50');
       document.getElementById('heal-tag').style.display = s.agent2.isHealed ? 'inline' : 'none';
     }
+
+    // 语言切换事件
+    document.getElementById('lang-select').addEventListener('change', (e) => applyLanguage(e.target.value));
 
     document.getElementById('api-url').addEventListener('change', (e) => dispatch({ type: 'SET_API_CONFIG', payload: { url: e.target.value } }));
     document.getElementById('api-key').addEventListener('change', (e) => dispatch({ type: 'SET_API_CONFIG', payload: { key: e.target.value } }));
