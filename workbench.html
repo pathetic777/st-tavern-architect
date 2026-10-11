@@ -47,10 +47,19 @@
     }
 
     .lang-select {
-      flex: 0 0 95px !important;
+      flex: 0 0 85px !important;
       background: #1e1e1e !important;
       border-color: #555 !important;
       color: #81d4fa !important;
+      cursor: pointer;
+    }
+
+    /* 竖屏/横屏 切换下拉选择框 */
+    .layout-select {
+      flex: 0 0 100px !important;
+      background: #1e1e1e !important;
+      border-color: #555 !important;
+      color: #ffb74d !important;
       cursor: pointer;
     }
 
@@ -216,6 +225,43 @@
       font-size: 12px;
       pointer-events: none;
     }
+
+    /* ==========================================
+       竖屏模式样式 (Portrait Mode)
+       ========================================== */
+    body.portrait-mode {
+      flex-direction: column-reverse;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    body.portrait-mode #viewport-container {
+      height: 42vh;
+      flex: none;
+      width: 100%;
+      touch-action: none;
+    }
+
+    body.portrait-mode #sidebar {
+      width: 100% !important;
+      min-width: 100% !important;
+      flex: 1;
+      height: 58vh;
+      padding: 10px;
+      gap: 8px;
+    }
+
+    body.portrait-mode textarea {
+      height: 70px;
+    }
+
+    body.portrait-mode #agent2-output {
+      height: 90px;
+    }
+
+    body.portrait-mode .packet-card {
+      max-height: 120px;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -230,6 +276,10 @@
         <select id="lang-select" class="lang-select">
           <option value="en" selected>English</option>
           <option value="zh">中文</option>
+        </select>
+        <select id="layout-select" class="layout-select">
+          <option value="desktop" data-i18n="layout_desktop">🖥️ Desktop</option>
+          <option value="portrait" data-i18n="layout_portrait">📱 Portrait</option>
         </select>
       </div>
       <div class="config-row">
@@ -350,7 +400,9 @@
         alert_confirm_config: "Please verify configuration and select an available model!",
         config_not_ready: "Configuration not ready",
         request_fail: "Request failed: ",
-        compile_fail: "Compilation & Execution failed: "
+        compile_fail: "Compilation & Execution failed: ",
+        layout_desktop: "🖥️ Desktop",
+        layout_portrait: "📱 Portrait"
       },
       zh: {
         app_title: "双 Agent 建筑建模工作台 (双视觉协同版)",
@@ -389,7 +441,9 @@
         alert_confirm_config: "请确认配置并选择可用模型！",
         config_not_ready: "配置未就绪",
         request_fail: "请求失败: ",
-        compile_fail: "编译执行失败: "
+        compile_fail: "编译执行失败: ",
+        layout_desktop: "🖥️ 宽屏模式",
+        layout_portrait: "📱 竖屏模式"
       }
     };
 
@@ -421,6 +475,24 @@
       if (langSelect && langSelect.value !== lang) langSelect.value = lang;
 
       syncView(model);
+    }
+
+    // 布局切换逻辑
+    function applyLayout(layout) {
+      if (layout === 'portrait') {
+        document.body.classList.add('portrait-mode');
+      } else {
+        document.body.classList.remove('portrait-mode');
+      }
+      localStorage.setItem('app_layout', layout);
+
+      const layoutSelect = document.getElementById('layout-select');
+      if (layoutSelect && layoutSelect.value !== layout) {
+        layoutSelect.value = layout;
+      }
+
+      // 触发重排，让 Three.js ResizeObserver 重新适配画布尺寸
+      window.dispatchEvent(new Event('resize'));
     }
 
     // ==========================================
@@ -591,7 +663,7 @@
     }
 
     // ==========================================
-    // 4. 命令调度器 (双 Agent 视觉直达 + 动态语言提示词)
+    // 4. 命令调度器
     // ==========================================
     async function handleCmd(cmd) {
       switch (cmd.type) {
@@ -922,6 +994,8 @@ Synthesize both inputs to generate high-quality native Three.js modeling code:
     function boot() {
       initWebGL();
       applyLanguage(currentLang);
+      const savedLayout = localStorage.getItem('app_layout') || 'desktop';
+      applyLayout(savedLayout);
     }
 
     if (document.readyState === 'loading') {
@@ -950,7 +1024,7 @@ Synthesize both inputs to generate high-quality native Three.js modeling code:
       document.getElementById('agent1-output').value = s.agent1.output;
       document.getElementById('btn-agent1-run').disabled = s.agent1.status === 'loading';
 
-      // 共享图像预览同步（支持动态语言切换更新）
+      // 共享图像预览同步
       const previewWrapper = document.getElementById('image-preview-wrapper');
       const previewImg = document.getElementById('image-preview');
       const hint = document.getElementById('image-hint');
@@ -981,8 +1055,9 @@ Synthesize both inputs to generate high-quality native Three.js modeling code:
       document.getElementById('heal-tag').style.display = s.agent2.isHealed ? 'inline' : 'none';
     }
 
-    // 语言切换事件
+    // 事件挂载
     document.getElementById('lang-select').addEventListener('change', (e) => applyLanguage(e.target.value));
+    document.getElementById('layout-select').addEventListener('change', (e) => applyLayout(e.target.value));
 
     document.getElementById('api-url').addEventListener('change', (e) => dispatch({ type: 'SET_API_CONFIG', payload: { url: e.target.value } }));
     document.getElementById('api-key').addEventListener('change', (e) => dispatch({ type: 'SET_API_CONFIG', payload: { key: e.target.value } }));
