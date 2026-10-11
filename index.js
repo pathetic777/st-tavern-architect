@@ -1,7 +1,13 @@
 jQuery(() => {
+  const isMobile = window.innerWidth <= 768;
   const container = document.createElement('div');
   container.id = 'st-architect-container';
-  container.style.cssText = 'display:none;position:fixed;top:3%;left:5%;width:90vw;height:92vh;z-index:9999;background:#121212;border:1px solid #444;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.85);overflow:hidden;';
+  
+  const baseStyle = 'display:none;position:fixed;z-index:9999;background:#121212;border:1px solid #444;box-shadow:0 10px 30px rgba(0,0,0,0.85);overflow:hidden;';
+  const layoutStyle = isMobile 
+    ? 'top:0;left:0;width:100vw;height:100vh;border-radius:0;' 
+    : 'top:3%;left:5%;width:90vw;height:92vh;border-radius:8px;';
+  container.style.cssText = baseStyle + layoutStyle;
 
   const bar = document.createElement('div');
   bar.style.cssText = 'height:36px;background:#1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #333;';
@@ -39,4 +45,3 @@ jQuery(() => {
 
   $('#extensions_settings').append(btn);
 });
-
